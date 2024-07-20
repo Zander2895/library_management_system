@@ -54,4 +54,3 @@ Ensure you have Python 3 installed on your machine.
 1. Clone the repository:
    ```bash
    git clone https://github.com/Zander2895/library_management_system.git
-   cd library-management-system
