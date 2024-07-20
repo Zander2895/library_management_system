@@ -1,3 +1,4 @@
+# main.py
 import re
 from book import Book
 from user import User
@@ -125,21 +126,12 @@ def genre_operations():
         else:
             print("Invalid option, please try again.")
 
-def validate_date(date_str):
-    if re.match(r"\d{4}-\d{2}-\d{2}", date_str):
-        return True
-    return False
-
+# Book Operations
 def add_book():
     title = input("Enter the title of the book: ")
     author = input("Enter the author of the book: ")
     isbn = input("Enter the ISBN of the book: ")
     publication_date = input("Enter the publication date of the book (YYYY-MM-DD): ")
-
-    if not validate_date(publication_date):
-        print("Invalid date format. Please use YYYY-MM-DD.")
-        return
-
     new_book = Book(title, author, isbn, publication_date)
     books.append(new_book)
     print(f"Book '{title}' added successfully!")
@@ -181,14 +173,10 @@ def display_books():
     for book in books:
         print(f"Title: {book.get_title()}, ISBN: {book.get_isbn()}, Availability: {'Available' if book.is_available() else 'Borrowed'}")
 
+# User Operations
 def add_user():
     name = input("Enter the user's name: ")
     library_id = input("Enter the user's library ID: ")
-
-    if not re.match(r"^[a-zA-Z0-9]+$", library_id):
-        print("Invalid library ID. Please use alphanumeric characters only.")
-        return
-
     new_user = User(name, library_id)
     users.append(new_user)
     print(f"User '{name}' added successfully!")
@@ -207,6 +195,7 @@ def display_users():
     for user in users:
         print(f"Name: {user.get_name()}, Library ID: {user.get_library_id()}")
 
+# Author Operations
 def add_author():
     name = input("Enter the author's name: ")
     biography = input("Enter the author's biography: ")
@@ -228,6 +217,7 @@ def display_authors():
     for author in authors:
         print(f"Name: {author.get_name()}")
 
+# Genre Operations
 def add_genre():
     name = input("Enter the genre's name: ")
     description = input("Enter the genre's description: ")
@@ -251,7 +241,4 @@ def display_genres():
         print(f"Name: {genre.get_name()}")
 
 if __name__ == "__main__":
-    try:
-        main_menu()
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    main_menu()
