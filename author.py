@@ -3,7 +3,6 @@ class Author:
         self.__name = name
         self.__biography = biography
 
-    # Getters and Setters
     def get_name(self):
         return self.__name
 

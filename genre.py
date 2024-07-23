@@ -4,7 +4,6 @@ class Genre:
         self.__description = description
         self.__category = category
 
-    # Getters and Setters
     def get_name(self):
         return self.__name
 

@@ -125,7 +125,6 @@ def genre_operations():
         else:
             print("Invalid option, please try again.")
 
-# Book Operations
 def add_book():
     title = input("Enter the title of the book: ")
     author = input("Enter the author of the book: ")
@@ -172,7 +171,6 @@ def display_books():
     for book in books:
         print(f"Title: {book.get_title()}, ISBN: {book.get_isbn()}, Availability: {'Available' if book.is_available() else 'Borrowed'}")
 
-# User Operations
 def add_user():
     name = input("Enter the user's name: ")
     library_id = input("Enter the user's library ID: ")
@@ -194,7 +192,6 @@ def display_users():
     for user in users:
         print(f"Name: {user.get_name()}, Library ID: {user.get_library_id()}")
 
-# Author Operations
 def add_author():
     name = input("Enter the author's name: ")
     biography = input("Enter the author's biography: ")
@@ -216,7 +213,6 @@ def display_authors():
     for author in authors:
         print(f"Name: {author.get_name()}")
 
-# Genre Operations
 def add_genre():
     name = input("Enter the genre's name: ")
     description = input("Enter the genre's description: ")
