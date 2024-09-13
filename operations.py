@@ -1,4 +1,6 @@
 import re
+import mysql.connector
+
 from book import Book
 from user import User
 from author import Author
@@ -8,6 +10,20 @@ books = []
 users = []
 authors = []
 genres = []
+
+def connect_to_db():
+    try:
+        connection = mysql.connector.connect(
+            host="127.0.0.1:3306",
+            user="root",
+            password="1Y6%11]5?16f",
+            database="Library_Management_System"
+        )
+        return connection
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return None
+
 
 def main_menu():
     while True:
@@ -127,70 +143,281 @@ def genre_operations():
 
 def add_book():
     title = input("Enter the title of the book: ")
-    author = input("Enter the author of the book: ")
+    author_id = input("Enter the author ID: ")
     isbn = input("Enter the ISBN of the book: ")
     publication_date = input("Enter the publication date of the book (YYYY-MM-DD): ")
-    new_book = Book(title, author, isbn, publication_date)
-    books.append(new_book)
-    print(f"Book '{title}' added successfully!")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "INSERT INTO Books (title, author_id, isbn, publication_date) VALUES (%s, %s, %s, %s)"
+        values = (title, author_id, isbn, publication_date)
+        cursor.execute(query, values)
+        connection.commit()
+        print(f"Book '{title}' added successfully!")
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
 
 def borrow_book():
     isbn = input("Enter the ISBN of the book to borrow: ")
-    for book in books:
-        if book.get_isbn() == isbn:
-            if book.borrow():
-                print(f"You have borrowed '{book.get_title()}'")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "SELECT title, is_available FROM Books WHERE isbn = %s"
+        cursor.execute(query, (isbn,))
+        result = cursor.fetchone()
+
+        if result:
+            title, is_available = result
+            if is_available:
+                update_query = "UPDATE Books SET is_available = FALSE WHERE isbn = %s"
+                cursor.execute(update_query, (isbn,))
+                connection.commit()
+                print(f"You have borrowed '{title}'")
             else:
-                print(f"'{book.get_title()}' is already borrowed.")
-            return
-    print("Book not found.")
+                print(f"'{title}' is already borrowed.")
+        else:
+            print("Book not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
 
 def return_book():
     isbn = input("Enter the ISBN of the book to return: ")
-    for book in books:
-        if book.get_isbn() == isbn:
-            if not book.is_available():
-                book.return_book()
-                print(f"You have returned '{book.get_title()}'")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "SELECT title, is_available FROM Books WHERE isbn = %s"
+        cursor.execute(query, (isbn,))
+        result = cursor.fetchone()
+
+        if result:
+            title, is_available = result
+            if not is_available:
+                update_query = "UPDATE Books SET is_available = TRUE WHERE isbn = %s"
+                cursor.execute(update_query, (isbn,))
+                connection.commit()
+                print(f"You have returned '{title}'")
             else:
-                print(f"'{book.get_title()}' was not borrowed.")
-            return
-    print("Book not found.")
+                print(f"'{title}' was not borrowed.")
+        else:
+            print("Book not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
 
 def search_book():
     isbn = input("Enter the ISBN of the book to search: ")
-    for book in books:
-        if book.get_isbn() == isbn:
-            print(f"Title: {book.get_title()}\nAuthor: {book.get_author()}\nPublication Date: {book.get_publication_date()}\nAvailability: {'Available' if book.is_available() else 'Borrowed'}")
-            return
-    print("Book not found.")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "SELECT title, author_id, publication_date, is_available FROM Books WHERE isbn = %s"
+        cursor.execute(query, (isbn,))
+        result = cursor.fetchone()
+
+        if result:
+            title, author_id, publication_date, is_available = result
+            availability = "Available" if is_available else "Borrowed"
+            print(f"Title: {title}\nAuthor ID: {author_id}\nPublication Date: {publication_date}\nAvailability: {availability}")
+        else:
+            print("Book not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
 
 def display_books():
-    if not books:
-        print("No books available.")
-    for book in books:
-        print(f"Title: {book.get_title()}, ISBN: {book.get_isbn()}, Availability: {'Available' if book.is_available() else 'Borrowed'}")
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "SELECT title, isbn, is_available FROM Books"
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        if results:
+            for row in results:
+                title, isbn, is_available = row
+                availability = "Available" if is_available else "Borrowed"
+                print(f"Title: {title}, ISBN: {isbn}, Availability: {availability}")
+        else:
+            print("No books available.")
+
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
+def update_book():
+    isbn = input("Enter the ISBN of the book to update: ")
+    
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "SELECT * FROM Books WHERE isbn = %s"
+        cursor.execute(query, (isbn,))
+        result = cursor.fetchone()
+
+        if result:
+            new_title = input("Enter new title (leave blank to keep unchanged): ") or result[1]
+            new_author_id = input("Enter new author ID (leave blank to keep unchanged): ") or result[2]
+            new_publication_date = input("Enter new publication date (YYYY-MM-DD, leave blank to keep unchanged): ") or result[3]
+            
+            update_query = "UPDATE Books SET title = %s, author_id = %s, publication_date = %s WHERE isbn = %s"
+            cursor.execute(update_query, (new_title, new_author_id, new_publication_date, isbn))
+            connection.commit()
+            print(f"Book '{isbn}' updated successfully!")
+        else:
+            print("Book not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
+def delete_book():
+    isbn = input("Enter the ISBN of the book to delete: ")
+    
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "DELETE FROM Books WHERE isbn = %s"
+        cursor.execute(query, (isbn,))
+        connection.commit()
+
+        if cursor.rowcount > 0:
+            print(f"Book '{isbn}' deleted successfully!")
+        else:
+            print("Book not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
 
 def add_user():
     name = input("Enter the user's name: ")
     library_id = input("Enter the user's library ID: ")
-    new_user = User(name, library_id)
-    users.append(new_user)
-    print(f"User '{name}' added successfully!")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "INSERT INTO Users (name, library_id) VALUES (%s, %s)"
+        values = (name, library_id)
+        cursor.execute(query, values)
+        connection.commit()
+        print(f"User '{name}' added successfully!")
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
 
 def view_user_details():
     library_id = input("Enter the user's library ID: ")
-    for user in users:
-        if user.get_library_id() == library_id:
-            print(f"Name: {user.get_name()}\nBorrowed Books: {', '.join(user.get_borrowed_books())}")
-            return
-    print("User not found.")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "SELECT name FROM Users WHERE library_id = %s"
+        cursor.execute(query, (library_id,))
+        result = cursor.fetchone()
+
+        if result:
+            name = result[0]
+            print(f"Name: {name}")
+            # Fetch borrowed books (assumed a `borrowed_books` table for storing this relation)
+            book_query = "SELECT b.title FROM Books b JOIN BorrowedBooks bb ON b.book_id = bb.book_id WHERE bb.user_id = (SELECT user_id FROM Users WHERE library_id = %s)"
+            cursor.execute(book_query, (library_id,))
+            borrowed_books = cursor.fetchall()
+            if borrowed_books:
+                print("Borrowed Books: " + ", ".join([book[0] for book in borrowed_books]))
+            else:
+                print("No borrowed books.")
+        else:
+            print("User not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
 
 def display_users():
-    if not users:
-        print("No users available.")
-    for user in users:
-        print(f"Name: {user.get_name()}, Library ID: {user.get_library_id()}")
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "SELECT name, library_id FROM Users"
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        if results:
+            for row in results:
+                name, library_id = row
+                print(f"Name: {name}, Library ID: {library_id}")
+        else:
+            print("No users available.")
+
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
+def update_user():
+    library_id = input("Enter the library ID of the user to update: ")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "SELECT * FROM Users WHERE library_id = %s"
+        cursor.execute(query, (library_id,))
+        result = cursor.fetchone()
+
+        if result:
+            new_name = input("Enter new name (leave blank to keep unchanged): ") or result[1]
+            
+            update_query = "UPDATE Users SET name = %s WHERE library_id = %s"
+            cursor.execute(update_query, (new_name, library_id))
+            connection.commit()
+            print(f"User '{library_id}' updated successfully!")
+        else:
+            print("User not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
+def delete_user():
+    library_id = input("Enter the library ID of the user to delete: ")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "DELETE FROM Users WHERE library_id = %s"
+        cursor.execute(query, (library_id,))
+        connection.commit()
+
+        if cursor.rowcount > 0:
+            print(f"User '{library_id}' deleted successfully!")
+        else:
+            print("User not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
 
 def add_author():
     name = input("Enter the author's name: ")
@@ -213,6 +440,51 @@ def display_authors():
     for author in authors:
         print(f"Name: {author.get_name()}")
 
+def update_author():
+    name = input("Enter the name of the author to update: ")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "SELECT * FROM Authors WHERE name = %s"
+        cursor.execute(query, (name,))
+        result = cursor.fetchone()
+
+        if result:
+            new_biography = input("Enter new biography (leave blank to keep unchanged): ") or result[1]
+            
+            update_query = "UPDATE Authors SET biography = %s WHERE name = %s"
+            cursor.execute(update_query, (new_biography, name))
+            connection.commit()
+            print(f"Author '{name}' updated successfully!")
+        else:
+            print("Author not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
+def delete_author():
+    name = input("Enter the name of the author to delete: ")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "DELETE FROM Authors WHERE name = %s"
+        cursor.execute(query, (name,))
+        connection.commit()
+
+        if cursor.rowcount > 0:
+            print(f"Author '{name}' deleted successfully!")
+        else:
+            print("Author not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
 def add_genre():
     name = input("Enter the genre's name: ")
     description = input("Enter the genre's description: ")
@@ -234,6 +506,52 @@ def display_genres():
         print("No genres available.")
     for genre in genres:
         print(f"Name: {genre.get_name()}")
+
+def update_genre():
+    name = input("Enter the name of the genre to update: ")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "SELECT * FROM Genres WHERE name = %s"
+        cursor.execute(query, (name,))
+        result = cursor.fetchone()
+
+        if result:
+            new_description = input("Enter new description (leave blank to keep unchanged): ") or result[1]
+            new_category = input("Enter new category (leave blank to keep unchanged): ") or result[2]
+            
+            update_query = "UPDATE Genres SET description = %s, category = %s WHERE name = %s"
+            cursor.execute(update_query, (new_description, new_category, name))
+            connection.commit()
+            print(f"Genre '{name}' updated successfully!")
+        else:
+            print("Genre not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
+
+def delete_genre():
+    name = input("Enter the name of the genre to delete: ")
+
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        query = "DELETE FROM Genres WHERE name = %s"
+        cursor.execute(query, (name,))
+        connection.commit()
+
+        if cursor.rowcount > 0:
+            print(f"Genre '{name}' deleted successfully!")
+        else:
+            print("Genre not found.")
+        
+        cursor.close()
+        connection.close()
+    else:
+        print("Failed to connect to the database.")
 
 if __name__ == "__main__":
     main_menu()
